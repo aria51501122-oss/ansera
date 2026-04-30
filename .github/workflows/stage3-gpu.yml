@@ -1,0 +1,102 @@
+name: stage3-gpu
+
+on:
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: .
+
+jobs:
+  gpu:
+    runs-on: gpu-t4-4-core
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify GPU available
+        run: nvidia-smi
+
+      - name: docker compose up
+        run: docker compose up -d
+
+      - name: Wait for Postgres
+        run: |
+          for i in $(seq 1 30); do
+            if docker exec ansera-db pg_isready -U ansera >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Postgres did not become ready within 60s"
+          exit 1
+
+      - name: Wait for n8n
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:5678/healthz >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "n8n did not become ready within 120s"
+          exit 1
+
+      - name: Wait for Ollama
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:11434/api/tags >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Ollama did not become ready within 60s"
+          exit 1
+
+      - name: Pull bge-m3
+        run: docker exec ansera-ollama ollama pull bge-m3
+
+      - name: Pull qwen3:8b
+        run: docker exec ansera-ollama ollama pull qwen3:8b
+
+      - name: Verify GPU is used by Ollama
+        run: |
+          docker exec ansera-ollama ollama run qwen3:8b "warmup" >/dev/null 2>&1 &
+          WARMUP_PID=$!
+          for i in $(seq 1 30); do
+            OUTPUT=$(docker exec ansera-ollama ollama ps 2>/dev/null || true)
+            echo "${OUTPUT}"
+            if echo "${OUTPUT}" | grep -qE "qwen3:8b.*GPU"; then
+              echo "qwen3:8b is loaded on GPU"
+              wait $WARMUP_PID 2>/dev/null || true
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "qwen3:8b not detected on GPU"
+          docker exec ansera-ollama ollama ps
+          exit 1
+
+      - name: Inference time measurement (Ollama direct)
+        run: |
+          echo "--- Inference start ---"
+          START=$(date +%s%N)
+          RESPONSE=$(curl -fsS http://localhost:11434/api/generate \
+            -H 'Content-Type: application/json' \
+            -d '{"model":"qwen3:8b","prompt":"こんにちは。日本の首都は？","stream":false,"think":false}')
+          END=$(date +%s%N)
+          ELAPSED_MS=$(( (END - START) / 1000000 ))
+          echo "Elapsed: ${ELAPSED_MS} ms"
+          echo "Response: ${RESPONSE}"
+
+      - name: VRAM usage
+        run: nvidia-smi --query-gpu=memory.used,memory.total --format=csv
+
+      - name: Dump docker compose logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v

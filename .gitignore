@@ -1,0 +1,8 @@
+setup.log
+.setup_done
+*.backup
+.env
+n8n_data/
+pg_data/
+ollama_data/
+setup_backup_*.bat

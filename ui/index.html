@@ -1,0 +1,1814 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ansera</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg-primary: #0A0A0A;
+      --bg-secondary: #141414;
+      --bg-input: #1A1A1A;
+      --bg-hover: #1F1F1F;
+      --border: #1F1F1F;
+      --text-primary: #E5E5E5;
+      --text-secondary: #6B6B6B;
+      --accent: #8B5CF6;
+      --accent-hover: #7C3AED;
+      --accent-subtle: rgba(139, 92, 246, 0.10);
+      --success: #22C55E;
+      --error: #EF4444;
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', sans-serif;
+      font-size: 14px;
+      line-height: 1.7;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    button { font-family: inherit; cursor: pointer; }
+    input, textarea { font-family: inherit; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3a3a3a; }
+
+    .hidden { display: none !important; }
+
+    /* App layout */
+    .app { display: flex; height: 100vh; background: var(--bg-primary); }
+
+    /* ==================== Sidebar ==================== */
+    .sidebar {
+      width: 260px;
+      flex-shrink: 0;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 16px 12px;
+      gap: 10px;
+      overflow: hidden;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 4px 6px 8px;
+    }
+    .brand-icon {
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 12px rgba(139, 92, 246, 0.35);
+      flex-shrink: 0;
+    }
+    .brand-name {
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 20px;
+      letter-spacing: 0.02em;
+      color: var(--text-primary);
+    }
+
+    .new-chat-btn {
+      width: 100%;
+      padding: 10px 12px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 13px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.15s var(--ease), border-color 0.15s var(--ease);
+    }
+    .new-chat-btn:hover { background: var(--bg-hover); border-color: #2a2a2a; }
+    .new-chat-btn .icon { color: var(--text-secondary); }
+
+    .section-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      padding: 4px 8px 4px 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      letter-spacing: 0.01em;
+    }
+    .section {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      overflow-y: auto;
+      max-height: 200px;
+      padding-right: 2px;
+    }
+    .section.docs { max-height: none; flex: 1; min-height: 80px; }
+
+    .sidebar-item {
+      width: 100%;
+      padding: 8px 10px;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      color: var(--text-primary);
+      font-size: 13px;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.15s var(--ease);
+    }
+    .sidebar-item:hover { background: var(--bg-hover); }
+    .sidebar-item.active { background: var(--bg-hover); }
+    .sidebar-item .icon { color: var(--text-secondary); flex-shrink: 0; }
+    .sidebar-item .label {
+      flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    .divider { height: 1px; background: var(--border); margin: 8px 0; flex-shrink: 0; }
+
+    /* Custom checkbox (no animation, instant toggle) */
+    .checkbox {
+      width: 16px; height: 16px;
+      border: 1.5px solid #3a3a3a;
+      border-radius: 4px;
+      background: transparent;
+      flex-shrink: 0;
+      display: inline-flex; align-items: center; justify-content: center;
+      position: relative;
+    }
+    .checkbox.checked, .checkbox.indeterminate {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .checkbox.checked::after {
+      content: ''; width: 4px; height: 8px;
+      border-right: 2px solid white; border-bottom: 2px solid white;
+      transform: rotate(45deg) translate(-1px, -1px);
+    }
+    .checkbox.indeterminate::after {
+      content: ''; width: 8px; height: 2px; background: white; border-radius: 1px;
+    }
+
+    /* Group */
+    .group { display: flex; flex-direction: column; }
+    .group-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s var(--ease);
+      user-select: none;
+    }
+    .group-header:hover { background: var(--bg-hover); }
+    .group-arrow {
+      transition: transform 0.2s var(--ease);
+      color: var(--text-secondary);
+      display: inline-flex;
+    }
+    .group.expanded .group-arrow { transform: rotate(90deg); }
+    .group-icon { color: var(--text-secondary); display: inline-flex; }
+    .group-name { flex: 1; font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .group-children {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.25s var(--ease);
+      padding-left: 16px;
+    }
+    .group.expanded .group-children { /* max-height set by JS */ }
+
+    /* Doc item */
+    .doc-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      transition: background 0.15s var(--ease);
+      cursor: pointer;
+    }
+    .doc-item:hover { background: var(--bg-hover); }
+    .doc-item .doc-icon { color: var(--text-secondary); display: inline-flex; flex-shrink: 0; }
+    .doc-item .label {
+      flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .doc-menu-wrap { position: relative; display: inline-flex; }
+    .doc-item .doc-menu-btn {
+      opacity: 0;
+      background: transparent;
+      border: none;
+      padding: 2px 4px;
+      color: var(--text-secondary);
+      border-radius: 4px;
+      transition: opacity 0.15s var(--ease), background 0.15s var(--ease), color 0.15s var(--ease);
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .doc-item:hover .doc-menu-btn,
+    .doc-item .doc-menu-btn.open { opacity: 1; }
+    .doc-item .doc-menu-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .doc-menu-dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 4px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px;
+      min-width: 100px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      z-index: 120;
+      opacity: 0;
+      transform: translateY(-4px);
+      pointer-events: none;
+      transition: opacity 0.15s var(--ease), transform 0.15s var(--ease);
+    }
+    .doc-menu-dropdown.open {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    /* Toggle switch (mode) */
+    .toggle {
+      display: flex;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 3px;
+      gap: 2px;
+    }
+    .toggle-option {
+      flex: 1;
+      padding: 6px 0;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 500;
+      border-radius: 6px;
+      transition: all 0.2s var(--ease);
+    }
+    .toggle-option.active {
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 1px 4px rgba(139, 92, 246, 0.3);
+    }
+    .toggle-option:not(.active):hover { color: var(--text-primary); }
+
+    /* Icon button */
+    .icon-btn {
+      background: transparent;
+      border: none;
+      padding: 4px;
+      color: var(--text-secondary);
+      border-radius: 4px;
+      transition: all 0.15s var(--ease);
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .icon-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+    /* Dropdown */
+    .dropdown-wrap { position: relative; display: inline-flex; }
+    .dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 6px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 4px;
+      min-width: 160px;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.5);
+      z-index: 100;
+      opacity: 0;
+      transform: translateY(-4px);
+      pointer-events: none;
+      transition: opacity 0.15s var(--ease), transform 0.15s var(--ease);
+    }
+    .dropdown.open {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    .dropdown-item {
+      width: 100%;
+      padding: 8px 10px;
+      background: transparent;
+      border: none;
+      border-radius: 4px;
+      color: var(--text-primary);
+      font-size: 13px;
+      text-align: left;
+      transition: background 0.15s var(--ease);
+    }
+    .dropdown-item:hover { background: var(--bg-hover); }
+
+    /* Upload indicator (sidebar) */
+    .upload-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .upload-indicator .spinner {
+      width: 12px; height: 12px;
+      border: 2px solid rgba(139, 92, 246, 0.25);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    /* ==================== Main ==================== */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .messages-container {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    .messages-inner {
+      max-width: 760px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 32px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Welcome */
+    .welcome {
+      margin: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 80px 24px 48px;
+      max-width: 560px;
+      width: 100%;
+      min-height: 60vh;
+    }
+    .welcome-title {
+      font-family: 'Noto Serif JP', serif;
+      font-size: 24px;
+      font-weight: 400;
+      color: #ffffff;
+      opacity: 0.9;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+    .welcome-sub {
+      font-family: 'Inter', 'Noto Sans JP', sans-serif;
+      font-size: 14px;
+      color: #ffffff;
+      opacity: 0.4;
+      line-height: 1.6;
+      margin-bottom: 64px;
+    }
+    .welcome-footer {
+      font-family: 'Inter', 'Noto Sans JP', sans-serif;
+      font-size: 12px;
+      color: #ffffff;
+      opacity: 0.25;
+      margin-top: auto;
+    }
+    /* Messages */
+    .msg-row {
+      display: flex;
+      opacity: 0;
+      transform: translateY(8px);
+      animation: msg-in 0.3s var(--ease) forwards;
+    }
+    @keyframes msg-in {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .msg-row.user { justify-content: flex-end; }
+    .msg-row.ai, .msg-row.loading { justify-content: flex-start; }
+
+    .msg-user {
+      max-width: 70%;
+      background: var(--accent-subtle);
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      border-radius: 16px 16px 4px 16px;
+      padding: 12px 16px;
+      color: var(--text-primary);
+      font-size: 14px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .msg-ai-wrap {
+      max-width: 80%;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .msg-ai { padding: 12px 0; }
+
+    /* Markdown */
+    .markdown-body { color: var(--text-primary); line-height: 1.7; word-wrap: break-word; }
+    .markdown-body > *:first-child { margin-top: 0; }
+    .markdown-body > *:last-child { margin-bottom: 0; }
+    .markdown-body p { margin: 0 0 8px; }
+    .markdown-body strong, .markdown-body b { font-weight: 700; color: var(--text-primary); }
+    .markdown-body em, .markdown-body i { font-style: italic; }
+    .markdown-body ul { list-style: disc; padding-left: 1.4em; margin: 0 0 8px; }
+    .markdown-body ol { list-style: decimal; padding-left: 1.4em; margin: 0 0 8px; }
+    .markdown-body li { margin-bottom: 4px; }
+    .markdown-body li > ul, .markdown-body li > ol { margin: 4px 0; }
+    .markdown-body h1 { font-size: 1.4em; font-weight: 700; margin: 1em 0 0.5em; line-height: 1.3; }
+    .markdown-body h2 { font-size: 1.2em; font-weight: 700; margin: 1em 0 0.5em; line-height: 1.3; }
+    .markdown-body h3 { font-size: 1.05em; font-weight: 600; margin: 0.8em 0 0.4em; line-height: 1.4; }
+    .markdown-body h4 { font-size: 1em; font-weight: 600; margin: 0.8em 0 0.4em; }
+    .markdown-body code {
+      background: var(--bg-input);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.9em;
+    }
+    .markdown-body pre {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      overflow-x: auto;
+      margin: 8px 0;
+    }
+    .markdown-body pre code { background: transparent; padding: 0; border: 0; }
+    .markdown-body a { color: var(--accent); text-decoration: underline; }
+    .markdown-body blockquote {
+      border-left: 3px solid var(--border);
+      padding-left: 12px;
+      color: var(--text-secondary);
+      margin: 8px 0;
+    }
+    .markdown-body table { border-collapse: collapse; margin: 8px 0; font-size: 0.95em; }
+    .markdown-body th, .markdown-body td { border: 1px solid var(--border); padding: 6px 10px; }
+    .markdown-body hr { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
+
+    /* Citations (plain text line) */
+    .citations-text {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      opacity: 0;
+      animation: cite-in 0.3s var(--ease) 0.2s forwards;
+    }
+    @keyframes cite-in {
+      to { opacity: 1; }
+    }
+
+    /* Loading dots */
+    .loading-dots {
+      display: inline-flex;
+      gap: 5px;
+      padding: 12px 0;
+      align-items: center;
+    }
+    .loading-dots span {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--text-secondary);
+      animation: dot-bounce 1.4s infinite ease-in-out both;
+    }
+    .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+    .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+    @keyframes dot-bounce {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Composer */
+    .composer-wrap {
+      flex-shrink: 0;
+      padding: 12px 24px 18px;
+    }
+    .composer-inner {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+    .composer-info {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+    .composer {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 8px 8px 8px 14px;
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      transition: border-color 0.2s var(--ease);
+    }
+    .composer:focus-within { border-color: var(--accent); }
+    .composer textarea {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-primary);
+      font-size: 14px;
+      line-height: 1.6;
+      resize: none;
+      max-height: 140px;
+      padding: 6px 0;
+      overflow-y: auto;
+    }
+    .composer textarea::placeholder { color: var(--text-secondary); }
+    .send-btn {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s var(--ease), color 0.2s var(--ease);
+      flex-shrink: 0;
+    }
+    .send-btn.active {
+      background: var(--accent);
+      color: white;
+    }
+    .send-btn.active:hover { background: var(--accent-hover); }
+    .send-btn:disabled { cursor: not-allowed; }
+    .send-btn .icon { transition: transform 0.15s var(--ease); }
+    .send-btn:active:not(:disabled) .icon { transform: scale(0.88); }
+    .composer-hint {
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 8px;
+    }
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 13px;
+      color: var(--text-primary);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      opacity: 0;
+      transition: opacity 0.25s var(--ease), transform 0.25s var(--ease);
+      z-index: 200;
+      pointer-events: none;
+      max-width: 360px;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .toast.error { border-color: rgba(239, 68, 68, 0.4); }
+    .toast.success { border-color: rgba(34, 197, 94, 0.3); }
+
+    /* Group header menu (reuses doc-menu-* styles, hover-only) */
+    .group-header:hover .doc-menu-btn,
+    .group-header .doc-menu-btn.open { opacity: 1; }
+
+    /* ==================== Modal ==================== */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 300;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      opacity: 0;
+      transition: opacity 0.18s var(--ease);
+    }
+    .modal-backdrop.open {
+      display: flex;
+      opacity: 1;
+    }
+    .modal {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 480px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+      transform: scale(0.96);
+      opacity: 0;
+      transition: transform 0.2s var(--ease), opacity 0.2s var(--ease);
+    }
+    .modal-backdrop.open .modal {
+      transform: scale(1);
+      opacity: 1;
+    }
+    .modal-header {
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      flex-shrink: 0;
+    }
+    .modal-body {
+      padding: 16px 20px;
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 0;
+    }
+    .modal-input {
+      width: 100%;
+      padding: 9px 12px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 14px;
+      outline: none;
+      font-family: inherit;
+      transition: border-color 0.15s var(--ease);
+    }
+    .modal-input:focus { border-color: var(--accent); }
+    .modal-input::placeholder { color: var(--text-secondary); }
+    .modal-section-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      letter-spacing: 0.02em;
+      margin-top: 4px;
+    }
+    .modal-doc-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      max-height: 320px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 4px;
+      background: var(--bg-primary);
+    }
+    .modal-doc-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s var(--ease);
+      user-select: none;
+    }
+    .modal-doc-row:hover { background: var(--bg-hover); }
+    .modal-doc-row .label {
+      flex: 1;
+      font-size: 13px;
+      color: var(--text-primary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .modal-doc-row .group-tag {
+      font-size: 11px;
+      color: var(--text-secondary);
+      padding: 1px 6px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .modal-empty {
+      font-size: 13px;
+      color: var(--text-secondary);
+      text-align: center;
+      padding: 24px 8px;
+    }
+    .modal-footer {
+      padding: 12px 20px 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .btn-secondary, .btn-primary {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      transition: background 0.15s var(--ease), border-color 0.15s var(--ease), opacity 0.15s var(--ease);
+      font-family: inherit;
+    }
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-primary);
+    }
+    .btn-secondary:hover { background: var(--bg-hover); }
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+    .btn-primary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="white" aria-hidden="true">
+            <path d="M12 2L13.8 9.2L21 11L13.8 12.8L12 20L10.2 12.8L3 11L10.2 9.2L12 2Z"/>
+          </svg>
+        </div>
+        <div class="brand-name">Ansera</div>
+      </div>
+
+      <button class="new-chat-btn" id="newChatBtn">
+        <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        新しい会話
+      </button>
+
+      <div class="section-label">
+        <span>資料</span>
+        <div class="dropdown-wrap">
+          <button class="icon-btn" id="docMenuBtn" aria-label="資料メニュー">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+          <div class="dropdown" id="docMenu">
+            <button class="dropdown-item" id="addDocBtn">資料を追加</button>
+            <button class="dropdown-item" id="createGroupBtn">グループ作成</button>
+          </div>
+        </div>
+      </div>
+      <div class="section docs" id="docList"></div>
+      <input type="file" id="fileInput" accept="application/pdf" multiple style="display:none">
+
+      <div class="divider"></div>
+
+      <div class="section-label">履歴</div>
+      <div class="section" id="historyList"></div>
+
+      <div class="divider"></div>
+
+      <div class="section-label">回答モード</div>
+      <div class="toggle" id="modeToggle">
+        <button class="toggle-option active" data-mode="strict">厳密</button>
+        <button class="toggle-option" data-mode="study">柔軟</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="messages-container" id="messagesContainer">
+        <div class="welcome" id="welcome">
+          <div class="welcome-title" id="welcomeTitle"></div>
+          <div class="welcome-sub" id="welcomeSub"></div>
+          <div class="welcome-footer">すべての処理はこのPC内で完結します</div>
+        </div>
+        <div class="messages-inner hidden" id="messages"></div>
+      </div>
+
+      <div class="composer-wrap">
+        <div class="composer-inner">
+          <div class="composer-info" id="composerInfo">資料を選択してください</div>
+          <div class="composer">
+            <textarea id="input" placeholder="質問を入力..." rows="1"></textarea>
+            <button class="send-btn" id="sendBtn" disabled aria-label="送信">
+              <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </button>
+          </div>
+          <div class="composer-hint">Enterで送信 / Shift+Enterで改行</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="modal-backdrop" id="groupModal" role="dialog" aria-modal="true" aria-labelledby="groupModalTitle">
+    <div class="modal">
+      <div class="modal-header" id="groupModalTitle">グループ作成</div>
+      <div class="modal-body">
+        <input type="text" class="modal-input" id="groupModalName" placeholder="グループ名" maxlength="40" autocomplete="off">
+        <div class="modal-section-label">含める資料（1件以上）</div>
+        <div class="modal-doc-list" id="groupModalDocList"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="groupModalCancel">キャンセル</button>
+        <button class="btn-primary" id="groupModalCreate" disabled>作成</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==================== Config ====================
+    const API = {
+      base: 'http://localhost:5678',
+      key: 'rag-local-dev-key-2025'
+    };
+
+    const displayNames = {
+      'sorano_rules.pdf': '就業規則',
+      'sorano_expense.pdf': '経費精算マニュアル',
+      'sorano_benefits.pdf': '福利厚生ガイド',
+      'test_large.pdf': '社内マニュアル',
+      'test_jp.pdf': 'ペンギンフーズ資料',
+      'Textbook6.pdf': '測量学テキスト',
+      'P06.pdf': '測量学演習問題'
+    };
+
+    const initialDocs = [
+      { source: 'sorano_rules.pdf' },
+      { source: 'sorano_expense.pdf' },
+      { source: 'sorano_benefits.pdf' },
+      { source: 'test_large.pdf' },
+      { source: 'test_jp.pdf' },
+      { source: 'Textbook6.pdf' },
+      { source: 'P06.pdf' }
+    ];
+
+    // First-run seed (only used if localStorage "ansera_groups" is empty)
+    const initialGroupSeed = [{
+      id: 'g-init-sorano',
+      name: '株式会社ソラノ',
+      files: ['sorano_rules.pdf', 'sorano_expense.pdf', 'sorano_benefits.pdf']
+    }];
+
+    const GROUPS_LS_KEY = 'ansera_groups';
+
+    function loadGroups() {
+      try {
+        const raw = localStorage.getItem(GROUPS_LS_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            return parsed.filter(g => g && typeof g.id === 'string' && typeof g.name === 'string' && Array.isArray(g.files));
+          }
+        }
+      } catch (_) { /* fall through */ }
+      return JSON.parse(JSON.stringify(initialGroupSeed));
+    }
+
+    function saveGroups() {
+      try {
+        localStorage.setItem(GROUPS_LS_KEY, JSON.stringify(state.groups));
+      } catch (_) { /* quota or disabled — silently ignore */ }
+    }
+
+    // ==================== State ====================
+    const initialGroups = loadGroups();
+    const state = {
+      conversations: [],   // committed (non-empty), newest first
+      current: null,       // active {id,title,messages:[]} (may not be in conversations)
+      documents: [...initialDocs],
+      selectedSources: new Set(initialDocs.map(d => d.source)),
+      mode: 'strict',
+      groups: initialGroups,                                       // [{id, name, files:[source,...]}]
+      expandedGroups: new Set(initialGroups.map(g => g.id)),       // group IDs
+      sending: false,
+      uploading: null      // null | { current:Number, total:Number }
+    };
+
+    // ==================== Helpers ====================
+    const $ = (id) => document.getElementById(id);
+    const displayOf = (src) => displayNames[src] || src;
+    const uid = () => Math.random().toString(36).slice(2, 10);
+
+    function detectMentions(question) {
+      const q = (question || '').toLowerCase();
+      const found = new Set();
+      // 1. display_name部分一致 (2文字以上)
+      for (const [src, name] of Object.entries(displayNames)) {
+        if (name && name.length >= 2 && q.includes(name.toLowerCase())) found.add(src);
+      }
+      // 2. グループ名部分一致 → グループのfiles全部
+      for (const g of state.groups) {
+        if (g.name && g.name.length >= 2 && q.includes(g.name.toLowerCase())) {
+          for (const f of g.files) found.add(f);
+        }
+      }
+      // 3. source名 (xxx.pdf) 部分一致
+      for (const doc of state.documents) {
+        if (doc.source && q.includes(doc.source.toLowerCase())) found.add(doc.source);
+      }
+      return found;
+    }
+
+    function showToast(msg, type) {
+      const t = $('toast');
+      t.textContent = msg;
+      t.className = 'toast show' + (type ? ' ' + type : '');
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => { t.classList.remove('show'); }, 2400);
+    }
+
+    // ==================== Sidebar render ====================
+    function renderHistory() {
+      const list = $('historyList');
+      list.innerHTML = '';
+      const items = state.conversations.slice(0, 10);
+      items.forEach(conv => {
+        const btn = document.createElement('button');
+        btn.className = 'sidebar-item' + (state.current && state.current.id === conv.id ? ' active' : '');
+        btn.innerHTML = `
+          <span class="icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </span>
+          <span class="label"></span>
+        `;
+        btn.querySelector('.label').textContent = conv.title || '新しい会話';
+        btn.addEventListener('click', () => loadConversation(conv.id));
+        list.appendChild(btn);
+      });
+    }
+
+    // Group helpers
+    function groupedSourceSet() {
+      const s = new Set();
+      state.groups.forEach(g => g.files.forEach(f => s.add(f)));
+      return s;
+    }
+
+    function renderSidebarDocs() {
+      const list = $('docList');
+      list.innerHTML = '';
+
+      // Upload indicator (with progress)
+      if (state.uploading) {
+        const ind = document.createElement('div');
+        ind.className = 'upload-indicator';
+        const label = state.uploading.total > 1
+          ? `アップロード中... (${state.uploading.current}/${state.uploading.total})`
+          : 'アップロード中...';
+        ind.innerHTML = '<div class="spinner"></div><span></span>';
+        ind.querySelector('span').textContent = label;
+        list.appendChild(ind);
+      }
+
+      // Groups
+      state.groups.forEach(group => {
+        const files = state.documents.filter(d => group.files.includes(d.source));
+
+        const groupEl = document.createElement('div');
+        groupEl.className = 'group' + (state.expandedGroups.has(group.id) ? ' expanded' : '');
+        groupEl.dataset.groupId = group.id;
+
+        const header = document.createElement('div');
+        header.className = 'group-header';
+
+        const allChecked = files.length > 0 && files.every(f => state.selectedSources.has(f.source));
+        const someChecked = files.some(f => state.selectedSources.has(f.source));
+        const cbState = allChecked ? 'checked' : (someChecked ? 'indeterminate' : '');
+
+        header.innerHTML = `
+          <span class="checkbox ${cbState}"></span>
+          <span class="group-arrow">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </span>
+          <span class="group-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/></svg>
+          </span>
+          <span class="group-name"></span>
+          <span class="doc-menu-wrap">
+            <button class="doc-menu-btn" aria-label="グループメニュー">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="12" cy="19" r="1.2"/></svg>
+            </button>
+            <div class="doc-menu-dropdown">
+              <button class="dropdown-item group-edit">資料を編集</button>
+              <button class="dropdown-item group-delete">グループ削除</button>
+            </div>
+          </span>
+        `;
+        header.querySelector('.group-name').textContent = group.name;
+
+        // Toggle expand (excluding checkbox & menu)
+        header.addEventListener('click', (e) => {
+          if (e.target.closest('.checkbox')) return;
+          if (e.target.closest('.doc-menu-wrap')) return;
+          if (state.expandedGroups.has(group.id)) state.expandedGroups.delete(group.id);
+          else state.expandedGroups.add(group.id);
+          renderSidebarDocs();
+        });
+
+        // Group checkbox: toggle all (differential — no re-render)
+        header.querySelector('.checkbox').addEventListener('click', (e) => {
+          e.stopPropagation();
+          const currentGroup = state.groups.find(g => g.id === group.id);
+          if (!currentGroup) return;
+          const currentFiles = state.documents.filter(d => currentGroup.files.includes(d.source));
+          if (currentFiles.length === 0) return;
+          const currentAllChecked = currentFiles.every(f => state.selectedSources.has(f.source));
+          if (currentAllChecked) {
+            currentFiles.forEach(f => state.selectedSources.delete(f.source));
+          } else {
+            currentFiles.forEach(f => state.selectedSources.add(f.source));
+          }
+          updateCheckboxStates();
+          updateComposerInfo();
+        });
+
+        // Group menu
+        const gMenuBtn = header.querySelector('.doc-menu-btn');
+        const gMenuDrop = header.querySelector('.doc-menu-dropdown');
+        gMenuBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const wasOpen = gMenuDrop.classList.contains('open');
+          document.querySelectorAll('.doc-menu-dropdown.open').forEach(d => d.classList.remove('open'));
+          document.querySelectorAll('.doc-menu-btn.open').forEach(b => b.classList.remove('open'));
+          if (!wasOpen) { gMenuDrop.classList.add('open'); gMenuBtn.classList.add('open'); }
+        });
+        header.querySelector('.group-edit').addEventListener('click', (e) => {
+          e.stopPropagation();
+          gMenuDrop.classList.remove('open');
+          gMenuBtn.classList.remove('open');
+          openGroupModal('edit', group.id);
+        });
+        header.querySelector('.group-delete').addEventListener('click', (e) => {
+          e.stopPropagation();
+          gMenuDrop.classList.remove('open');
+          gMenuBtn.classList.remove('open');
+          deleteGroup(group.id);
+        });
+
+        const children = document.createElement('div');
+        children.className = 'group-children';
+        files.forEach(f => children.appendChild(buildDocItem(f)));
+
+        groupEl.appendChild(header);
+        groupEl.appendChild(children);
+        list.appendChild(groupEl);
+
+        if (state.expandedGroups.has(group.id)) {
+          // Synchronous max-height set with transition disabled, to prevent
+          // the 0→scrollHeight CSS transition from firing on every render.
+          // Without this, multiple expanded groups would visibly "shake"
+          // each time renderSidebarDocs runs.
+          children.style.transition = 'none';
+          children.style.maxHeight = children.scrollHeight + 'px';
+          // Force reflow to commit styles before re-enabling transition
+          children.offsetHeight; // eslint-disable-line no-unused-expressions
+          children.style.transition = '';
+        }
+      });
+
+      // Unclassified docs (flat)
+      const grouped = groupedSourceSet();
+      state.documents.filter(d => !grouped.has(d.source)).forEach(f => {
+        list.appendChild(buildDocItem(f));
+      });
+
+      if (typeof updateWelcomeState === 'function') updateWelcomeState();
+    }
+
+    function buildDocItem(doc) {
+      const checked = state.selectedSources.has(doc.source);
+      const item = document.createElement('div');
+      item.className = 'doc-item';
+      item.dataset.source = doc.source;
+      item.innerHTML = `
+        <span class="checkbox ${checked ? 'checked' : ''}"></span>
+        <span class="doc-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </span>
+        <span class="label"></span>
+        <span class="doc-menu-wrap">
+          <button class="doc-menu-btn" aria-label="メニュー">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="12" cy="19" r="1.2"/></svg>
+          </button>
+          <div class="doc-menu-dropdown">
+            <button class="dropdown-item doc-delete">削除</button>
+          </div>
+        </span>
+      `;
+      item.querySelector('.label').textContent = displayOf(doc.source);
+      item.addEventListener('click', (e) => {
+        if (e.target.closest('.doc-menu-wrap')) return;
+        toggleSelection(doc.source);
+      });
+      const menuBtn = item.querySelector('.doc-menu-btn');
+      const menuDrop = item.querySelector('.doc-menu-dropdown');
+      menuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const wasOpen = menuDrop.classList.contains('open');
+        document.querySelectorAll('.doc-menu-dropdown.open').forEach(d => d.classList.remove('open'));
+        document.querySelectorAll('.doc-menu-btn.open').forEach(b => b.classList.remove('open'));
+        if (!wasOpen) {
+          menuDrop.classList.add('open');
+          menuBtn.classList.add('open');
+        }
+      });
+      item.querySelector('.doc-delete').addEventListener('click', (e) => {
+        e.stopPropagation();
+        menuDrop.classList.remove('open');
+        menuBtn.classList.remove('open');
+        deleteDoc(doc.source);
+      });
+      return item;
+    }
+
+    function toggleSelection(source) {
+      if (state.selectedSources.has(source)) state.selectedSources.delete(source);
+      else state.selectedSources.add(source);
+      updateCheckboxStates();
+      updateComposerInfo();
+    }
+
+    // Differential checkbox sync — avoids full sidebar re-render
+    // (which would replay the group max-height transition and cause a "shake")
+    function updateCheckboxStates() {
+      document.querySelectorAll('.doc-item').forEach(item => {
+        const src = item.dataset.source;
+        if (!src) return;
+        const cb = item.querySelector('.checkbox');
+        if (!cb) return;
+        if (state.selectedSources.has(src)) cb.classList.add('checked');
+        else cb.classList.remove('checked');
+      });
+      document.querySelectorAll('.group').forEach(g => {
+        const id = g.dataset.groupId;
+        if (!id) return;
+        const group = state.groups.find(x => x.id === id);
+        if (!group) return;
+        const files = state.documents.filter(d => group.files.includes(d.source));
+        const cb = g.querySelector('.group-header .checkbox');
+        if (!cb) return;
+        const allChecked = files.length > 0 && files.every(f => state.selectedSources.has(f.source));
+        const someChecked = files.some(f => state.selectedSources.has(f.source));
+        cb.classList.remove('checked', 'indeterminate');
+        if (allChecked) cb.classList.add('checked');
+        else if (someChecked) cb.classList.add('indeterminate');
+      });
+    }
+
+    // ==================== Group modal (create / edit) ====================
+    const groupModalState = {
+      open: false,
+      composing: false,
+      selected: new Set(),
+      mode: 'create',       // 'create' | 'edit'
+      editingGroupId: null
+    };
+
+    function openGroupModal(mode, groupId) {
+      const m = mode === 'edit' ? 'edit' : 'create';
+      const editingGroup = m === 'edit' ? state.groups.find(g => g.id === groupId) : null;
+      if (m === 'edit' && !editingGroup) {
+        showToast('編集対象のグループが見つかりません', 'error');
+        return;
+      }
+
+      groupModalState.mode = m;
+      groupModalState.editingGroupId = m === 'edit' ? groupId : null;
+
+      const modal = $('groupModal');
+      const title = $('groupModalTitle');
+      const nameInput = $('groupModalName');
+      const list = $('groupModalDocList');
+      const submitBtn = $('groupModalCreate');
+
+      // Title + submit button text
+      if (m === 'edit') {
+        title.textContent = 'グループを編集';
+        submitBtn.textContent = '保存';
+      } else {
+        title.textContent = 'グループ作成';
+        submitBtn.textContent = '作成';
+      }
+
+      // Initial selected set + name
+      if (m === 'edit') {
+        groupModalState.selected = new Set(editingGroup.files);
+        nameInput.value = editingGroup.name;
+      } else {
+        groupModalState.selected = new Set();
+        nameInput.value = '';
+      }
+
+      // Render document list (snapshot of state.documents at open time)
+      list.innerHTML = '';
+      if (state.documents.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'modal-empty';
+        empty.textContent = '資料がありません。先にPDFを追加してください。';
+        list.appendChild(empty);
+      } else {
+        state.documents.forEach(doc => {
+          const row = document.createElement('div');
+          row.className = 'modal-doc-row';
+          const isChecked = groupModalState.selected.has(doc.source);
+          row.innerHTML = `
+            <span class="checkbox ${isChecked ? 'checked' : ''}"></span>
+            <span class="label"></span>
+          `;
+          row.querySelector('.label').textContent = displayOf(doc.source);
+
+          // Show current group tag if any (skip the group being edited — it's implicit)
+          const currentGroup = state.groups.find(g => g.files.includes(doc.source));
+          if (currentGroup && (m !== 'edit' || currentGroup.id !== groupId)) {
+            const tag = document.createElement('span');
+            tag.className = 'group-tag';
+            tag.textContent = currentGroup.name;
+            row.appendChild(tag);
+          }
+
+          const cb = row.querySelector('.checkbox');
+          row.addEventListener('click', () => {
+            if (groupModalState.selected.has(doc.source)) {
+              groupModalState.selected.delete(doc.source);
+              cb.classList.remove('checked');
+            } else {
+              groupModalState.selected.add(doc.source);
+              cb.classList.add('checked');
+            }
+            updateGroupModalSubmitBtn();
+          });
+          list.appendChild(row);
+        });
+      }
+
+      updateGroupModalSubmitBtn();
+      modal.classList.add('open');
+      groupModalState.open = true;
+      requestAnimationFrame(() => nameInput.focus());
+    }
+
+    function closeGroupModal() {
+      const modal = $('groupModal');
+      modal.classList.remove('open');
+      groupModalState.open = false;
+      groupModalState.selected = new Set();
+      groupModalState.mode = 'create';
+      groupModalState.editingGroupId = null;
+    }
+
+    function updateGroupModalSubmitBtn() {
+      const btn = $('groupModalCreate');
+      const name = $('groupModalName').value.trim();
+      const hasName = name.length > 0;
+      if (groupModalState.mode === 'edit') {
+        btn.disabled = !hasName; // empty selection allowed in edit
+      } else {
+        const hasDocs = groupModalState.selected.size > 0;
+        btn.disabled = !(hasName && hasDocs);
+      }
+    }
+
+    function submitGroupModal() {
+      const name = $('groupModalName').value.trim();
+      const sources = Array.from(groupModalState.selected);
+
+      if (!name) {
+        showToast('グループ名を入力してください', 'error');
+        return;
+      }
+
+      if (groupModalState.mode === 'edit') {
+        const target = state.groups.find(g => g.id === groupModalState.editingGroupId);
+        if (!target) {
+          showToast('編集対象のグループが見つかりません', 'error');
+          return;
+        }
+        // Duplicate name check excluding self
+        if (state.groups.some(g => g.id !== target.id && g.name === name)) {
+          showToast('同名のグループが既にあります', 'error');
+          return;
+        }
+        // Maintain 1-file-per-group: remove selected sources from any other group
+        sources.forEach(src => {
+          state.groups.forEach(g => {
+            if (g.id === target.id) return;
+            const i = g.files.indexOf(src);
+            if (i >= 0) g.files.splice(i, 1);
+          });
+        });
+        target.name = name;
+        target.files = sources;
+        saveGroups();
+        closeGroupModal();
+        renderSidebarDocs();
+        showToast(`グループ「${name}」を更新しました（${sources.length}件）`, 'success');
+      } else {
+        // create
+        if (sources.length === 0) {
+          showToast('資料を1件以上選択してください', 'error');
+          return;
+        }
+        if (state.groups.some(g => g.name === name)) {
+          showToast('同名のグループが既にあります', 'error');
+          return;
+        }
+        const id = 'g-' + uid();
+        // Remove from existing groups (1-file-per-group)
+        sources.forEach(src => {
+          state.groups.forEach(g => {
+            const i = g.files.indexOf(src);
+            if (i >= 0) g.files.splice(i, 1);
+          });
+        });
+        state.groups.push({ id, name, files: sources });
+        state.expandedGroups.add(id);
+        saveGroups();
+        closeGroupModal();
+        renderSidebarDocs();
+        showToast(`グループ「${name}」を作成しました（${sources.length}件）`, 'success');
+      }
+    }
+
+    function deleteGroup(groupId) {
+      const group = state.groups.find(g => g.id === groupId);
+      if (!group) return;
+      const fileCount = group.files.length;
+      const confirmMsg = fileCount > 0
+        ? `グループ「${group.name}」を削除しますか？中の${fileCount}件の資料は未分類に戻ります。`
+        : `グループ「${group.name}」を削除しますか？`;
+      if (!confirm(confirmMsg)) return;
+      state.groups = state.groups.filter(g => g.id !== groupId);
+      state.expandedGroups.delete(groupId);
+      saveGroups();
+      renderSidebarDocs();
+      showToast(`グループ「${group.name}」を削除しました`, 'success');
+    }
+
+    function updateComposerInfo() {
+      const n = state.selectedSources.size;
+      $('composerInfo').textContent = n === 0 ? '資料を選択してください' : `${n}件の資料から検索`;
+    }
+
+    // ==================== Conversation ====================
+    function newChat() {
+      state.current = { id: 'c-' + uid(), title: '', messages: [] };
+      renderMessages();
+      renderHistory();
+      $('input').value = '';
+      autosize($('input'));
+      updateSendBtn();
+    }
+
+    function loadConversation(id) {
+      const conv = state.conversations.find(c => c.id === id);
+      if (!conv) return;
+      state.current = conv;
+      renderMessages();
+      renderHistory();
+    }
+
+    function ensureCurrent() {
+      if (!state.current) state.current = { id: 'c-' + uid(), title: '', messages: [] };
+    }
+
+    function commitIfFirst(question) {
+      const conv = state.current;
+      const wasFirst = conv.messages.length === 1; // user just pushed
+      if (wasFirst) {
+        conv.title = question.length > 20 ? question.slice(0, 20) + '…' : question;
+        if (!state.conversations.includes(conv)) {
+          state.conversations.unshift(conv);
+          if (state.conversations.length > 20) state.conversations.length = 20;
+        }
+        renderHistory();
+      }
+    }
+
+    // ==================== Messages render ====================
+    function updateWelcomeState() {
+      const t = $('welcomeTitle');
+      const s = $('welcomeSub');
+      if (!t || !s) return;
+      if (state.documents.length > 0) {
+        t.textContent = '気になることを聞いてみてください。';
+        s.textContent = '選択中の資料から、AIが答えを探します';
+      } else {
+        t.textContent = 'PDFを追加して、気になることを聞いてみてください。';
+        s.textContent = 'サイドバーの「＋」から資料を追加できます';
+      }
+    }
+
+    function renderMessages() {
+      const inner = $('messages');
+      const welcome = $('welcome');
+      inner.innerHTML = '';
+      const hasMsgs = state.current && state.current.messages.length > 0;
+      if (!hasMsgs) {
+        updateWelcomeState();
+        welcome.classList.remove('hidden');
+        inner.classList.add('hidden');
+      } else {
+        welcome.classList.add('hidden');
+        inner.classList.remove('hidden');
+        state.current.messages.forEach(m => appendMessageDom(m));
+        scrollToBottom();
+      }
+    }
+
+    function appendMessageDom(msg) {
+      const inner = $('messages');
+      const row = document.createElement('div');
+      row.className = 'msg-row ' + msg.role;
+      row.dataset.id = msg.id;
+
+      if (msg.role === 'user') {
+        const bubble = document.createElement('div');
+        bubble.className = 'msg-user';
+        bubble.textContent = msg.content;
+        row.appendChild(bubble);
+      } else if (msg.role === 'ai') {
+        const wrap = document.createElement('div');
+        wrap.className = 'msg-ai-wrap';
+        const ai = document.createElement('div');
+        ai.className = 'msg-ai markdown-body';
+        ai.innerHTML = marked.parse(msg.content || '');
+        wrap.appendChild(ai);
+        if (msg.sources && msg.sources.length) {
+          wrap.appendChild(renderCitations(msg));
+        }
+        row.appendChild(wrap);
+      } else if (msg.role === 'loading') {
+        const dots = document.createElement('div');
+        dots.className = 'loading-dots';
+        dots.innerHTML = '<span></span><span></span><span></span>';
+        row.appendChild(dots);
+      }
+      inner.appendChild(row);
+      scrollToBottom();
+      return row;
+    }
+
+    function renderCitations(msg) {
+      const div = document.createElement('div');
+      div.className = 'citations-text';
+      div.textContent = '引用: ' + msg.sources.map(s => displayOf(s)).join(', ');
+      return div;
+    }
+
+    function scrollToBottom() {
+      const c = $('messagesContainer');
+      requestAnimationFrame(() => { c.scrollTop = c.scrollHeight; });
+    }
+
+    // ==================== Send / API ====================
+    let abortController = null;
+
+    function cancelSend() {
+      if (abortController) abortController.abort();
+    }
+
+    async function send(question) {
+      question = question.trim();
+      if (!question || state.sending) return;
+      state.sending = true;
+      ensureCurrent();
+
+      // ensure messages view
+      $('welcome').classList.add('hidden');
+      $('messages').classList.remove('hidden');
+
+      const userMsg = { id: uid(), role: 'user', content: question };
+      state.current.messages.push(userMsg);
+      appendMessageDom(userMsg);
+      commitIfFirst(question);
+
+      // input reset
+      const input = $('input');
+      input.value = '';
+      autosize(input);
+      updateSendBtn();
+
+      // loading
+      const loadingId = uid();
+      const loadingMsg = { id: loadingId, role: 'loading' };
+      const loadingRow = appendMessageDom(loadingMsg);
+
+      abortController = new AbortController();
+
+      try {
+        const body = { question, mode: state.mode };
+        const total = state.documents.length;
+        const merged = new Set([...state.selectedSources, ...detectMentions(question)]);
+        if (merged.size > 0 && merged.size < total) {
+          body.sources = [...merged];
+        }
+        const res = await fetch(API.base + '/webhook/rag-chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': API.key
+          },
+          body: JSON.stringify(body),
+          signal: abortController.signal
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        loadingRow.remove();
+        const aiMsg = {
+          id: uid(),
+          role: 'ai',
+          content: data.answer || '',
+          sources: data.sources || [],
+          meta: data.meta || null
+        };
+        state.current.messages.push(aiMsg);
+        appendMessageDom(aiMsg);
+      } catch (err) {
+        loadingRow.remove();
+        if (err.name === 'AbortError') {
+          showToast('キャンセルしました');
+        } else {
+          const errMsg = {
+            id: uid(),
+            role: 'ai',
+            content: 'エラーが発生しました。サーバーが起動しているか確認してください。'
+          };
+          state.current.messages.push(errMsg);
+          appendMessageDom(errMsg);
+          showToast('送信に失敗しました', 'error');
+          console.error(err);
+        }
+      } finally {
+        state.sending = false;
+        abortController = null;
+        updateSendBtn();
+      }
+    }
+
+    async function uploadOne(file) {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch(API.base + '/webhook/rag-pdf', {
+        method: 'POST',
+        headers: { 'X-API-Key': API.key },
+        body: fd
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      let data = {};
+      try {
+        const txt = await res.text();
+        if (txt) data = JSON.parse(txt);
+      } catch (_) { data = {}; }
+      if (Array.isArray(data)) data = data[0] || {};
+      return data.source || file.name;
+    }
+
+    async function uploadFiles(files) {
+      const list = Array.from(files || []);
+      if (list.length === 0) return;
+      const total = list.length;
+      const successes = [];
+      const errors = [];
+
+      for (let i = 0; i < total; i++) {
+        state.uploading = { current: i + 1, total };
+        renderSidebarDocs();
+        try {
+          const src = await uploadOne(list[i]);
+          if (!state.documents.find(d => d.source === src)) {
+            state.documents.push({ source: src });
+          }
+          state.selectedSources.add(src);
+          successes.push(src);
+        } catch (err) {
+          console.error(err);
+          errors.push(list[i].name);
+        }
+      }
+
+      state.uploading = null;
+      renderSidebarDocs();
+
+      if (successes.length > 0) {
+        const msg = successes.length === 1
+          ? `${displayOf(successes[0])} を追加しました`
+          : `${successes.length}件のPDFを追加しました`;
+        showToast(msg, 'success');
+      }
+      if (errors.length > 0) {
+        const showErr = () => showToast(`${errors.length}件失敗: ${errors.join(', ')}`, 'error');
+        if (successes.length > 0) setTimeout(showErr, 900);
+        else showErr();
+      }
+    }
+
+    async function deleteDoc(source) {
+      if (!confirm(`${displayOf(source)} を削除しますか？`)) return;
+      try {
+        const res = await fetch(API.base + '/webhook/rag-delete', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': API.key
+          },
+          body: JSON.stringify({ source })
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        state.documents = state.documents.filter(d => d.source !== source);
+        state.selectedSources.delete(source);
+        // Also remove from any group's files list
+        let groupsChanged = false;
+        state.groups.forEach(g => {
+          const i = g.files.indexOf(source);
+          if (i >= 0) { g.files.splice(i, 1); groupsChanged = true; }
+        });
+        if (groupsChanged) saveGroups();
+        renderSidebarDocs();
+        updateComposerInfo();
+        showToast('削除しました', 'success');
+      } catch (err) {
+        showToast('削除に失敗しました', 'error');
+        console.error(err);
+      }
+    }
+
+    // ==================== Composer ====================
+    function autosize(el) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+    }
+
+    function updateSendBtn() {
+      const btn = $('sendBtn');
+      if (state.sending) {
+        btn.disabled = false;
+        btn.classList.add('active');
+        btn.setAttribute('aria-label', 'キャンセル');
+        btn.innerHTML = '<svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
+      } else {
+        const has = $('input').value.trim().length > 0;
+        btn.disabled = !has;
+        btn.classList.toggle('active', has);
+        btn.setAttribute('aria-label', '送信');
+        btn.innerHTML = '<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+      }
+    }
+
+    // ==================== Init / events ====================
+    let isComposing = false;
+
+    function init() {
+      // marked config
+      marked.setOptions({ breaks: true, gfm: true });
+
+      renderHistory();
+      renderSidebarDocs();
+      renderMessages();
+      updateComposerInfo();
+      updateSendBtn();
+
+      // new chat
+      $('newChatBtn').addEventListener('click', newChat);
+
+      // mode toggle
+      $('modeToggle').querySelectorAll('.toggle-option').forEach(opt => {
+        opt.addEventListener('click', () => {
+          state.mode = opt.dataset.mode;
+          $('modeToggle').querySelectorAll('.toggle-option').forEach(o => o.classList.remove('active'));
+          opt.classList.add('active');
+        });
+      });
+
+      // doc menu dropdown
+      const menuBtn = $('docMenuBtn');
+      const menu = $('docMenu');
+      menuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        menu.classList.toggle('open');
+      });
+      document.addEventListener('click', (e) => {
+        if (!menu.contains(e.target) && e.target !== menuBtn && !menuBtn.contains(e.target)) {
+          menu.classList.remove('open');
+        }
+        if (!e.target.closest('.doc-menu-wrap')) {
+          document.querySelectorAll('.doc-menu-dropdown.open').forEach(d => d.classList.remove('open'));
+          document.querySelectorAll('.doc-menu-btn.open').forEach(b => b.classList.remove('open'));
+        }
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          if (groupModalState.open) {
+            closeGroupModal();
+            return;
+          }
+          menu.classList.remove('open');
+          document.querySelectorAll('.doc-menu-dropdown.open').forEach(d => d.classList.remove('open'));
+          document.querySelectorAll('.doc-menu-btn.open').forEach(b => b.classList.remove('open'));
+        }
+      });
+
+      // 資料を追加
+      $('addDocBtn').addEventListener('click', () => {
+        menu.classList.remove('open');
+        $('fileInput').click();
+      });
+      $('fileInput').addEventListener('change', (e) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length > 0) uploadFiles(files);
+        e.target.value = '';
+      });
+
+      // グループ作成: open modal
+      $('createGroupBtn').addEventListener('click', () => {
+        menu.classList.remove('open');
+        if (groupModalState.open) return;
+        openGroupModal('create');
+      });
+
+      // Group modal events
+      const groupModal = $('groupModal');
+      const groupModalName = $('groupModalName');
+      $('groupModalCancel').addEventListener('click', closeGroupModal);
+      $('groupModalCreate').addEventListener('click', submitGroupModal);
+      groupModalName.addEventListener('input', updateGroupModalSubmitBtn);
+      groupModalName.addEventListener('compositionstart', () => { groupModalState.composing = true; });
+      groupModalName.addEventListener('compositionend', () => { groupModalState.composing = false; });
+      groupModalName.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !groupModalState.composing && !e.isComposing) {
+          e.preventDefault();
+          if (!$('groupModalCreate').disabled) submitGroupModal();
+        }
+      });
+      // Backdrop click closes (only if click started and ended on backdrop)
+      groupModal.addEventListener('mousedown', (e) => {
+        groupModal._mouseDownOnBackdrop = (e.target === groupModal);
+      });
+      groupModal.addEventListener('click', (e) => {
+        if (e.target === groupModal && groupModal._mouseDownOnBackdrop) {
+          closeGroupModal();
+        }
+        groupModal._mouseDownOnBackdrop = false;
+      });
+
+      // composer
+      const input = $('input');
+      input.addEventListener('compositionstart', () => { isComposing = true; });
+      input.addEventListener('compositionend', () => { isComposing = false; });
+      input.addEventListener('input', () => {
+        autosize(input);
+        updateSendBtn();
+      });
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey && !isComposing && !e.isComposing) {
+          e.preventDefault();
+          send(input.value);
+        }
+      });
+      $('sendBtn').addEventListener('click', () => {
+        if (state.sending) cancelSend();
+        else send(input.value);
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  </script>
+</body>
+</html>
