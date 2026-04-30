@@ -28,6 +28,16 @@ jobs:
           echo "--- Generated compose file ---"
           cat ./docker-compose.ci.yml
 
+      - name: Generate test .env
+        run: |
+          cat > .env << 'EOF'
+          POSTGRES_PASSWORD=ci_test_password_random_32chars_xxxx
+          N8N_ENCRYPTION_KEY=ci_test_encryption_key_random_32chars
+          WEBHOOK_API_KEY=ci_test_api_key_random_32chars_yyyyy
+          EOF
+          echo "--- .env created for CI ---"
+          cat .env
+
       - name: docker compose up
         run: docker compose -f ./docker-compose.ci.yml up -d
 
