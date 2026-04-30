@@ -11,8 +11,6 @@ jobs:
   integration:
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    env:
-      COMPOSE_FILE: /tmp/docker-compose.ci.yml
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,12 +24,12 @@ jobs:
 
       - name: Generate CPU compose file (strip GPU deploy block)
         run: |
-          yq 'del(.services.ollama.deploy)' docker-compose.yml > /tmp/docker-compose.ci.yml
+          yq 'del(.services.ollama.deploy)' docker-compose.yml > ./docker-compose.ci.yml
           echo "--- Generated compose file ---"
-          cat /tmp/docker-compose.ci.yml
+          cat ./docker-compose.ci.yml
 
       - name: docker compose up
-        run: docker compose -f /tmp/docker-compose.ci.yml up -d
+        run: docker compose -f ./docker-compose.ci.yml up -d
 
       - name: Wait for Postgres
         run: |
@@ -111,8 +109,8 @@ jobs:
 
       - name: Dump docker compose logs on failure
         if: failure()
-        run: docker compose -f /tmp/docker-compose.ci.yml logs
+        run: docker compose -f ./docker-compose.ci.yml logs
 
       - name: Tear down
         if: always()
-        run: docker compose -f /tmp/docker-compose.ci.yml down -v
+        run: docker compose -f ./docker-compose.ci.yml down -v
