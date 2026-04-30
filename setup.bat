@@ -16,6 +16,23 @@ echo   Ansera セットアップを開始します
 echo ========================================
 echo.
 
+REM ---------- [0/7] .env auto-generate ----------
+if not exist "%~dp0.env" (
+    echo [0/7] 認証情報を自動生成中...
+    for /f %%i in ('powershell -NoProfile -Command "-join ((1..32) | ForEach-Object {[char]((65..90) + (97..122) + (48..57) | Get-Random)})"') do set PG_PASS=%%i
+    for /f %%i in ('powershell -NoProfile -Command "-join ((1..32) | ForEach-Object {[char]((65..90) + (97..122) + (48..57) | Get-Random)})"') do set N8N_KEY=%%i
+    for /f %%i in ('powershell -NoProfile -Command "-join ((1..32) | ForEach-Object {[char]((65..90) + (97..122) + (48..57) | Get-Random)})"') do set API_KEY=%%i
+    (
+      echo POSTGRES_PASSWORD=!PG_PASS!
+      echo N8N_ENCRYPTION_KEY=!N8N_KEY!
+      echo WEBHOOK_API_KEY=!API_KEY!
+    ) > "%~dp0.env"
+    echo [OK] Random secrets generated in .env
+) else (
+    echo [INFO] .env already exists, skipping secret generation
+)
+echo.
+
 REM ---------- 前提確認 ----------
 echo [前提確認 1/4] 管理者権限を確認中...
 net session >nul 2>&1
@@ -184,24 +201,32 @@ if errorlevel 1 (
 
 echo.
 echo ============================================
-echo   n8n の初期設定をしてください
+echo   [Postgres Credential Setup]
 echo ============================================
 echo.
-echo   1. ブラウザで http://localhost:5678 を開く
-echo   2. アカウントを作成（名前/メール/パスワード）
-echo   3. 左メニュー Settings → Credentials → Add Credential
-echo   4. 「PostgreSQL」を検索して選択
-echo   5. 以下を入力：
-echo      Name: Postgres account
-echo      Host: postgres
-echo      Port: 5432
-echo      Database: ansera
-echo      User: ansera
-echo      Password: ansera
-echo   6. Save をクリック
+echo Please create a credential in n8n with the following values:
 echo.
-echo   完了したら、このウィンドウに戻って
-set /p READY=  Enterキーを押してください:
+echo   Name:     Postgres account
+echo   Host:     postgres
+echo   Port:     5432
+echo   Database: ansera
+echo   User:     ansera
+echo   Password: (Open .env file in this folder and copy POSTGRES_PASSWORD value)
+echo   SSL:      Disable
+echo.
+echo The .env file location: %CD%\.env
+echo.
+echo To view the password:
+echo   - Right-click .env -^> Open with Notepad
+echo   - Or run: type .env
+echo.
+echo Steps:
+echo   1. Open http://localhost:5678 in your browser
+echo   2. Create an account (name / email / password)
+echo   3. Settings -^> Credentials -^> Add Credential -^> PostgreSQL
+echo   4. Enter the values above and click Save
+echo.
+set /p READY=When done, press Enter to continue:
 
 REM ---------- [7/7] WF import ----------
 set SKIP_WF=0

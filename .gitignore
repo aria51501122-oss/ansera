@@ -6,3 +6,4 @@ n8n_data/
 pg_data/
 ollama_data/
 setup_backup_*.bat
+SAVEDATA_v*.md
