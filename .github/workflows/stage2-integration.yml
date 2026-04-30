@@ -101,12 +101,6 @@ jobs:
       - name: Pull bge-m3 model (qwen3:8b skipped, too large for CPU runner)
         run: docker exec ansera-ollama ollama pull bge-m3
 
-      - name: Import n8n workflows
-        run: |
-          docker exec --user root ansera-n8n rm -rf /tmp/n8n-workflows
-          docker cp n8n-workflows ansera-n8n:/tmp/n8n-workflows
-          docker exec ansera-n8n n8n import:workflow --separate --input=/tmp/n8n-workflows
-
       - name: Dump docker compose logs on failure
         if: failure()
         run: docker compose -f ./docker-compose.ci.yml logs
