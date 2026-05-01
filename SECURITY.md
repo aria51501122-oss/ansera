@@ -185,5 +185,5 @@ REINDEX TABLE access_logs;
 
 ## 📚 ライセンス
 
-詳細は LICENSES.md 参照。
+詳細は NOTICE.md 参照。
 全コンポーネントが商用利用可能。

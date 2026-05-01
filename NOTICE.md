@@ -1,3 +1,10 @@
+# NOTICE
+
+This product includes software developed by third parties.
+See below for attribution and license information.
+
+---
+
 # Ansera - サードパーティソフトウェア・ライセンス
 
 > 最終更新: 2026-04-30 (v33)

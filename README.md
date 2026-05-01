@@ -245,7 +245,7 @@ docker exec ansera-ollama ollama pull bge-m3
 
 `ollama pull` は差分ダウンロードのため、変化がない層は再取得しません。完了後、稼働中のサービスを止めずに新モデルが反映されます。
 
-> 注: 大規模なバージョン跨ぎ（例: Qwen2 → Qwen3）の場合は埋め込みベクトル次元数が変わる可能性があり、既存 PDF の再投入が必要になることがあります。事前に `LICENSES.md` の対象モデル仕様をご確認ください。
+> 注: 大規模なバージョン跨ぎ（例: Qwen2 → Qwen3）の場合は埋め込みベクトル次元数が変わる可能性があり、既存 PDF の再投入が必要になることがあります。事前に `NOTICE.md` の対象モデル仕様をご確認ください。
 
 ### 定期再起動（推奨運用）
 
@@ -340,7 +340,7 @@ automation tool, used under the Sustainable Use License
 自動化ツールが含まれており、Sustainable Use License 
 (https://docs.n8n.io/sustainable-use-license/) のもとで利用しています。
 
-その他の含まれるソフトウェアおよびライセンス詳細については `LICENSES.md` を
+その他の含まれるソフトウェアおよびライセンス詳細については `NOTICE.md` を
 ご参照ください。
 
 ## 🔄 ロールバック手順（v33 セキュリティ強化版）
