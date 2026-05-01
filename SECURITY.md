@@ -151,6 +151,38 @@ docker compose restart n8n
 
 `docker-compose.yml` を編集後、`docker compose up -d` で反映されます。
 
+## 🛡 データ整合性・回復
+
+### PostgreSQL の整合性
+
+Ansera は PostgreSQL 17 のデフォルト設定で稼働しており、以下のクラッシュ耐性が確保されています:
+
+- `fsync = on` — トランザクションコミット時にディスクへ強制書き込み
+- `synchronous_commit = on` — WAL のディスク書き込み完了を確認してから ACK
+- `wal_level = replica` — リカバリ用の十分な WAL 情報を記録
+
+これにより、コンテナクラッシュ・OS クラッシュ・電源断発生時でも、コミット済みのデータは保全されます。`docker-compose.yml` で名前付きボリューム `pg_data` に永続化されているため、コンテナ再作成時もデータは維持されます。
+
+### インデックス再構築
+
+PGroonga インデックスが破損した場合（クラッシュ後の異常検索結果など）、以下の SQL で再構築できます:
+
+```sql
+-- 個別インデックス再構築
+REINDEX INDEX idx_documents_content_pgroonga;
+REINDEX INDEX idx_access_logs_timestamp;
+
+-- テーブル単位での再構築（推奨）
+REINDEX TABLE documents;
+REINDEX TABLE access_logs;
+```
+
+実行は `docker exec -it ansera-db psql -U ansera -d ansera` で接続後に行います。再構築中はそのインデックスを参照するクエリがブロックされるため、業務時間外の実施を推奨します。
+
+### バックアップとの併用
+
+`scripts/backup.ps1`（README.md「🛠 運用ガイド」参照）でデータ全体のスナップショットを取得できます。整合性問題が疑われる場合はまずバックアップを取得してから REINDEX を実行してください。
+
 ## 📚 ライセンス
 
 詳細は LICENSES.md 参照。
