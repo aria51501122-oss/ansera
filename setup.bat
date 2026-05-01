@@ -27,14 +27,25 @@ if not exist "%~dp0.env" (
       echo N8N_ENCRYPTION_KEY=!N8N_KEY!
       echo WEBHOOK_API_KEY=!API_KEY!
     ) > "%~dp0.env"
-    echo [OK] Random secrets generated in .env
+    echo [OK] ランダムなセキュリティキーを .env に生成しました
 ) else (
-    echo [INFO] .env already exists, skipping secret generation
+    echo [INFO] 既存の .env を検出しました（再生成をスキップします）
 )
 echo.
 
 REM ---------- 前提確認 ----------
-echo [前提確認 1/4] 管理者権限を確認中...
+echo [前提確認 1/6] OS バージョンを確認中...
+ver | findstr /C:"10.0" >nul
+if errorlevel 1 (
+    echo.
+    echo [エラー] Windows 10 (1903以降) または Windows 11 が必要です。
+    echo ログ: %LOG%
+    echo.
+    pause
+    exit /b 1
+)
+
+echo [前提確認 2/6] 管理者権限を確認中...
 net session >nul 2>&1
 if errorlevel 1 (
     echo.
@@ -46,25 +57,44 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo [前提確認 2/4] Docker Desktop を確認中...
+echo [前提確認 3/6] Docker Desktop を確認中...
+where docker >nul 2>&1
+if errorlevel 1 (
+    echo.
+    echo [エラー] Docker Desktop がインストールされていません。
+    echo インストール先: https://docs.docker.com/desktop/install/windows-install/
+    echo ログ: %LOG%
+    echo.
+    pause
+    exit /b 1
+)
 docker info >nul 2>>"%LOG%"
 if errorlevel 1 (
     echo.
     echo [エラー] Docker Desktop が起動していません。
-    echo 対処法: Docker Desktop をインストールし、起動してから再実行してください。
-    echo ダウンロード: https://www.docker.com/products/docker-desktop/
+    echo        既にインストール済みの場合は、Docker Desktop を起動してから
+    echo        もう一度 setup.bat を実行してください。
     echo ログ: %LOG%
     echo.
     pause
     exit /b 1
 )
 
-echo [前提確認 3/4] NVIDIA GPU を確認中...
-nvidia-smi >nul 2>&1
-if errorlevel 1 (
+echo [前提確認 4/6] 空きディスク容量を確認中...
+for /f "delims=" %%A in ('powershell -NoProfile -Command "[int64]((Get-PSDrive C).Free)"') do set FREE=%%A
+set /a FREE_GB=!FREE! / 1073741824
+echo 空き容量: !FREE_GB! GB
+if !FREE_GB! LSS 20 (
     echo.
-    echo [警告] NVIDIA GPU が見つかりませんでした。
-    echo CPU 動作になり、応答に数分かかる場合があります。
+    echo [エラー] 空き容量が不足しています（現在: !FREE_GB!GB / 必要: 20GB以上）。
+    echo ログ: %LOG%
+    echo.
+    pause
+    exit /b 1
+)
+if !FREE_GB! LSS 30 (
+    echo.
+    echo [警告] 空き容量が推奨値を下回っています（現在: !FREE_GB!GB / 推奨: 30GB以上）。
     echo.
     set /p YN=続行しますか？ (Y/N):
     if /i not "!YN!"=="Y" (
@@ -74,20 +104,49 @@ if errorlevel 1 (
     )
 )
 
-echo [前提確認 4/4] 空きディスク容量を確認中...
-for /f "delims=" %%A in ('powershell -NoProfile -Command "[int64]((Get-PSDrive C).Free)"') do set FREE=%%A
-set /a FREE_GB=!FREE! / 1073741824
-echo 空き容量: !FREE_GB! GB
-if !FREE_GB! LSS 20 (
+echo [前提確認 5/6] RAM を確認中...
+for /f "delims=" %%A in ('powershell -NoProfile -Command "[math]::Floor((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB)"') do set RAM_GB=%%A
+echo RAM: !RAM_GB! GB
+if !RAM_GB! LSS 16 (
     echo.
-    echo [警告] 空きディスク容量が 20GB 未満です（!FREE_GB! GB）。
-    echo セットアップには 20GB 以上を推奨します。
+    echo [警告] RAM が 16GB 未満です（現在: !RAM_GB!GB）。
+    echo        推奨は 16GB 以上です。動作はしますが処理が遅くなる可能性があります。
     echo.
     set /p YN=続行しますか？ (Y/N):
     if /i not "!YN!"=="Y" (
         echo セットアップを中止しました。
         pause
         exit /b 1
+    )
+)
+
+echo [前提確認 6/6] NVIDIA GPU / VRAM を確認中...
+where nvidia-smi >nul 2>&1
+if errorlevel 1 (
+    echo.
+    echo [警告] NVIDIA GPU が検出されませんでした。
+    echo        CPU モードで動作しますが、応答に数分かかる可能性があります。
+    echo.
+    set /p YN=続行しますか？ (Y/N):
+    if /i not "!YN!"=="Y" (
+        echo セットアップを中止しました。
+        pause
+        exit /b 1
+    )
+) else (
+    for /f "delims=" %%A in ('nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits') do set VRAM_MB=%%A
+    echo VRAM: !VRAM_MB! MB
+    if !VRAM_MB! LSS 8192 (
+        echo.
+        echo [警告] VRAM が 8GB 未満です（現在: !VRAM_MB!MB）。
+        echo        動作はしますが、性能が低下する可能性があります。
+        echo.
+        set /p YN=続行しますか？ (Y/N):
+        if /i not "!YN!"=="Y" (
+            echo セットアップを中止しました。
+            pause
+            exit /b 1
+        )
     )
 )
 
@@ -200,33 +259,32 @@ if errorlevel 1 (
 )
 
 echo.
-echo ============================================
-echo   [Postgres Credential Setup]
-echo ============================================
+echo ================================
+echo   Postgres Credential 設定
+echo ================================
 echo.
-echo Please create a credential in n8n with the following values:
+echo n8n の管理画面で以下の Credential を作成してください:
 echo.
-echo   Name:     Postgres account
-echo   Host:     postgres
-echo   Port:     5432
-echo   Database: ansera
-echo   User:     ansera
-echo   Password: (Open .env file in this folder and copy POSTGRES_PASSWORD value)
-echo   SSL:      Disable
+echo   1. http://localhost:5678 にアクセス
+echo   2. アカウントを作成（名前 / メールアドレス / パスワード）
+echo   3. Settings -^> Credentials -^> New Credential
+echo   4. "Postgres" を選択
+echo   5. 以下の値を入力:
 echo.
-echo The .env file location: %CD%\.env
+echo        Name:     Postgres account
+echo        Host:     postgres
+echo        Port:     5432
+echo        Database: ansera
+echo        User:     ansera
+echo        Password: (.env の POSTGRES_PASSWORD をコピー)
+echo        SSL:      Disable
 echo.
-echo To view the password:
-echo   - Right-click .env -^> Open with Notepad
-echo   - Or run: type .env
+echo   6. Save をクリック
 echo.
-echo Steps:
-echo   1. Open http://localhost:5678 in your browser
-echo   2. Create an account (name / email / password)
-echo   3. Settings -^> Credentials -^> Add Credential -^> PostgreSQL
-echo   4. Enter the values above and click Save
+echo .env ファイルの場所: %CD%\.env
+echo パスワード確認方法: type .env  または  メモ帳で開く
 echo.
-set /p READY=When done, press Enter to continue:
+set /p READY=完了したら Enter キーを押してください:
 
 REM ---------- [7/7] WF import ----------
 set SKIP_WF=0
@@ -270,12 +328,14 @@ if errorlevel 1 (
 :done
 echo.
 echo ========================================
-echo   セットアップが完了しました！
+echo   [OK] セットアップが正常に完了しました
 echo ========================================
 echo.
-echo 次の手順:
-echo.
-echo  ui\index.html をダブルクリックして Ansera を起動してください
+echo 次のステップ:
+echo   1. ブラウザで http://localhost:5678 を開く
+echo   2. n8n アカウントを作成
+echo   3. .env ファイルの値を credential に設定
+echo   4. ui\index.html をダブルクリックして利用開始
 echo.
 echo ブラウザを起動します...
 start "" http://localhost:5678

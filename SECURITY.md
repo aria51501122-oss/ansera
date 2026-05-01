@@ -57,6 +57,49 @@ n8n標準のパラメータバインディング使用。
 
 連絡先: [営業前に記入]
 
+## 📋 ログポリシー
+
+### 保存される情報
+
+Ansera は `access_logs` テーブルに以下を記録します:
+
+- `timestamp`: アクセス日時
+- `endpoint`: 呼び出された API（rag-chat / rag-pdf / rag-delete）
+- `question`: 質問内容（全文）
+- `source_filter`: 検索対象フィルタ
+- `mode`: 検索モード
+- `chunks_used`: 使用チャンク数
+- `estimated_tokens`: 推定トークン数
+- `response_status`: HTTP ステータス
+- `client_ip`: クライアント IP
+- `processing_time_ms`: 処理時間
+
+### データ保管場所
+
+全てのログは PostgreSQL コンテナ内に保存され、外部サーバへの送信は一切行いません。
+
+### ログ閲覧
+
+```
+docker exec -it ansera-db psql -U ansera -d ansera -c "SELECT * FROM access_logs ORDER BY timestamp DESC LIMIT 100;"
+```
+
+### ログ削除（推奨運用）
+
+30 日以上前のログを削除する SQL の例:
+
+```sql
+DELETE FROM access_logs WHERE timestamp < NOW() - INTERVAL '30 days';
+```
+
+保持期間は顧客の運用ポリシーに従って設定してください。
+
+### データ流出ゼロの根拠
+
+- 全ログはローカル PostgreSQL 内に閉じている
+- n8n テレメトリ無効化済み（v33 以降）
+- 外部 API 呼び出しは LLM ルートに存在しない
+
 ## 📚 ライセンス
 
 詳細は LICENSES.md 参照。
