@@ -234,6 +234,47 @@ docker cp ansera-n8n:/tmp/wf-backup.json ./wf-backup-YYYYMMDD.json
 
 将来的なリリースで `latest` タグを廃止し、全コンポーネントを特定バージョンに固定する予定です。現状はメジャーバージョンの安定運用を優先しており、`docker compose pull` での自動アップデート互換性を確保しています。
 
+### モデルの更新
+
+Ollama モデル（Qwen3-8B / BGE-M3）に新バージョンが公開されたら、コンテナ内で `ollama pull` を実行することで更新できます。
+
+```bash
+docker exec ansera-ollama ollama pull qwen3:8b
+docker exec ansera-ollama ollama pull bge-m3
+```
+
+`ollama pull` は差分ダウンロードのため、変化がない層は再取得しません。完了後、稼働中のサービスを止めずに新モデルが反映されます。
+
+> 注: 大規模なバージョン跨ぎ（例: Qwen2 → Qwen3）の場合は埋め込みベクトル次元数が変わる可能性があり、既存 PDF の再投入が必要になることがあります。事前に `LICENSES.md` の対象モデル仕様をご確認ください。
+
+### 定期再起動（推奨運用）
+
+n8n / Ollama は Node.js / Go の長期常駐プロセスであり、稀に内部キャッシュやメモリ使用量が緩やかに増加する場合があります。月 1 回程度の定期再起動を推奨します。
+
+```bash
+docker compose restart
+```
+
+`restart: unless-stopped` ポリシーにより、PC 再起動時にもコンテナは自動復帰します（手動再起動は不要）。
+
+### バックアップの自動化（Windows タスクスケジューラ）
+
+`scripts\backup.ps1` を Windows タスクスケジューラから定期実行することで、無人バックアップを構成できます。
+
+1. **タスクスケジューラ** を起動（スタートメニューで `taskschd.msc`）
+2. **タスクの作成** をクリック
+3. **全般** タブで以下を設定:
+   - 名前: `Ansera Backup`
+   - **最上位の特権で実行する** にチェック
+4. **トリガー** タブで `新規` をクリックし、例: 毎日 02:00 を指定
+5. **操作** タブで `新規` をクリック:
+   - プログラム: `powershell.exe`
+   - 引数: `-NoProfile -ExecutionPolicy Bypass -File "C:\path\to\Ansera\docker\scripts\backup.ps1"`
+6. **OK** で保存
+
+> 出力先を変えたい場合は引数に `-Destination "D:\Backups"` を追加してください。
+> ディスク容量に応じて、古いバックアップの自動削除は別途検討してください。
+
 ## 有料セットアップ支援
 
 導入が難しい方向けに、有料でリモートセットアップ支援を提供しています。
