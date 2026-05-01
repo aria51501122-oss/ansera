@@ -100,6 +100,57 @@ DELETE FROM access_logs WHERE timestamp < NOW() - INTERVAL '30 days';
 - n8n テレメトリ無効化済み（v33 以降）
 - 外部 API 呼び出しは LLM ルートに存在しない
 
+## 🗂 PDF / バイナリデータ管理
+
+### n8n 内部仕様（理解しておくべきこと）
+
+Webhook 経由でアップロードされた PDF は、n8n の内部仕様により以下に一時保管されます:
+
+- 保管場所: コンテナ内 `/home/node/.n8n/binaryData/`（Docker ボリューム `n8n_data`）
+- 紐付け: 各 execution 記録（n8n 内部 SQLite）に関連付け
+- 削除タイミング: 紐付く execution が prune されたとき
+
+外部送信は一切ありません（ボリューム内に閉じている）が、機密 PDF が長期間滞留する可能性があるため、Ansera では以下の自動 prune 設定を `docker-compose.yml` に組み込み済みです（v33 以降）:
+
+```
+EXECUTIONS_DATA_PRUNE=true
+EXECUTIONS_DATA_MAX_AGE=336      # 14 日 (時間単位)
+EXECUTIONS_DATA_PRUNE_MAX_COUNT=10000
+```
+
+**14 日以上経過した execution と、紐付くバイナリデータ（PDF）は自動削除**されます。
+
+### 手動 purge（即時削除したい場合）
+
+#### 方法 1: バイナリデータのみ即時削除
+
+```
+docker exec --user node ansera-n8n sh -c "rm -rf /home/node/.n8n/binaryData/*"
+```
+
+> 注: n8n を停止せずに実行しても問題ありませんが、進行中の execution は失敗する可能性があります。
+
+#### 方法 2: execution 履歴ごと削除
+
+```
+docker exec --user node ansera-n8n sh -c "rm -f /home/node/.n8n/database.sqlite-shm /home/node/.n8n/database.sqlite-wal" 
+docker compose restart n8n
+```
+
+> 注: 履歴・実行ログがすべてリセットされます。WF 定義は残ります。
+
+### 保持期間の調整
+
+社内ポリシーに合わせて `EXECUTIONS_DATA_MAX_AGE` を変更できます:
+
+| 用途 | 推奨値 (時間) |
+|---|---|
+| 高機密用途（即日削除） | 24 |
+| 標準（v33 デフォルト） | 336 (= 14 日) |
+| デバッグ重視 | 720 (= 30 日) |
+
+`docker-compose.yml` を編集後、`docker compose up -d` で反映されます。
+
 ## 📚 ライセンス
 
 詳細は LICENSES.md 参照。

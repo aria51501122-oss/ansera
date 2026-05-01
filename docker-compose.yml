@@ -51,6 +51,10 @@ services:
       # === D3: 外部通信抑制 ===
       - EXTERNAL_FRONTEND_HOOKS_URLS=
       - N8N_HIRING_BANNER_ENABLED=false
+      # === D5: 実行履歴・バイナリデータの自動 prune (14日) ===
+      - EXECUTIONS_DATA_PRUNE=true
+      - EXECUTIONS_DATA_MAX_AGE=336
+      - EXECUTIONS_DATA_PRUNE_MAX_COUNT=10000
     volumes:
       - n8n_data:/home/node/.n8n
     depends_on:
